@@ -59,4 +59,5 @@ android-*.img
 
 # Tauri
 **/target/
-**/*.dSYM
+**/*.dSYMpackage-lock.json
+pnpm-lock.yaml
