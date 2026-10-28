@@ -1,66 +1,78 @@
-# LinuxStacks - Próximos Passos
+# LinuxStacks - Pronto para Linux
 
-## No GitHub (neste computador Windows)
+O projeto foi corrigido e enviado para o GitHub. Agora é só clonar e compilar no Ubuntu.
 
-### Opção 1: Via GitHub CLI (recomendado)
-```powershell
-# Instale o GitHub CLI se não tiver:
-# https://cli.github.com/
+## Código corrigido
 
-gh auth login          # Faça login
-gh repo create magicgabroo/linuxstacks --private --source=. --push
-```
-
-### Opção 2: Via interface web
-1. Acesse https://github.com/new
-2. Crie repo `linuxstacks` (público ou privado)
-3. Faça push manual quando tiver Git instalado:
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/magicgabroo/linuxstacks.git
-git branch -M main
-git push -u origin main
-```
+- **Rust**: erros de compilação resolvidos (falta de parênteses, variáveis conflituosas, imports inexistentes)
+- **Vue/TypeScript**: scripts duplicados removidos, types corrigidos, eventos Tauri funcionais
+- **QEMU**: startup real com tracking de PID, stop via SIGTERM, verificação de processo ativo
+- **Instalador**: sem sudo automático — mostra comandos para o usuário executar
+- **Assets**: ícones PNG/ICO/SVG criados, favicon adicionado
+- **tauri.conf.json**: schema v2 válido, dependências `.deb` adequadas ao Ubuntu 26.04
 
 ---
 
-## No Linux (quando estiver pronto)
+## Instalar no Ubuntu 26.04
 
 ```bash
-# 1. Clone
+# 1. Clonar
 git clone https://github.com/magicgabroo/linuxstacks.git
 cd linuxstacks
 
-# 2. Verifique KVM
-lscpu | grep -E 'vmx|svm'
-ls /dev/kvm
+# 2. Verificar virtualização
+lscpu | grep -E 'vmx|svm'    # deve mostrar algo
+ls /dev/kvm                   # deve existir
 
-# 3. Setup dev environment
-./scripts/setup-dev.sh
+# 3. Instalar dependências do sistema
+sudo apt update
+sudo apt install -y \
+  qemu-system-x86 qemu-kvm \
+  libwebkit2gtk-4.1-0 libgtk-3-0 \
+  librsvg2-2 patchelf \
+  curl git
 
-# 4. Desenvolvimento
-pnpm tauri dev
+# 4. Adicionar usuário aos grupos
+sudo usermod -aG kvm $USER
+sudo usermod -aG libvirt $USER
+# FAZER LOGOUT E LOGIN NOVAMENTE PARA OS GRUPOS FUNCIONAREM
 
-# 5. Build produção
-pnpm tauri build
+# 5. Instalar Rust e pnpm
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
+npm install -g pnpm
+
+# 6. Instalar dependências do projeto e compilar
+pnpm install
+pnpm tauri dev          # modo desenvolvimento
+pnpm tauri build         # gera o .deb
+
+# 7. Instalar o pacote
+sudo apt install ./src-tauri/target/release/bundle/deb/linuxstacks_*.deb
 ```
 
 ---
 
-## Instalação Producao (Linux)
+## Dependências do pacote .deb
 
-```bash
-# Ap os primeiros releases:
-curl -fsSL https://raw.githubusercontent.com/magicgabroo/linuxstacks/main/scripts/install.sh | bash
 ```
+qemu-system-x86, qemu-kvm, libwebkit2gtk-4.1-0,
+libgtk-3-0, librsvg2-2, patchelf
+```
+
+Virt-manager e libvirt são **opcionais** — o app usa QEMU diretamente.
 
 ---
 
-## Observações
+## Primeiro uso
 
-- **Git não instalado neste Windows**: use PowerShell Git Bash ou WSL para o primeiro push
-- **Icons**: PNGs são placeholders 1x1px — gere ícones reais e substitua em `src-tauri/icons/`
-- **Lockfile**: `Cargo.lock` será gerado automaticamente no primeiro build no Linux
-- **CI/CD**: O workflow no GitHub Actions criará releases automaticamente ao dar tag `v*`
+1. Abra o LinuxStacks
+2. Vá em **Configurações → Android** e baixe a imagem Android
+3. Ajuste CPU/memória se necessário
+4. Clique **Iniciar VM**
+
+---
+
+## Repositório
+
+https://github.com/magicgabroo/linuxstacks
