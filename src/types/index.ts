@@ -1,4 +1,4 @@
-// Type definitions for LinuxStacks
+// LinuxStacks - Type definitions
 
 export interface VmConfig {
   memory_mb: number

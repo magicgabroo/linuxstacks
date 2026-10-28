@@ -1,1 +1,1 @@
-/// <reference types="@tauri-apps/client" />
+/// <reference types="@tauri-apps/api" />

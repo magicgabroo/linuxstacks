@@ -87,10 +87,11 @@ async function downloadAndroidImage() {
       config.value.android.image_url,
       `${config.value.android.shared_folder}/android.img`
     )
-    downloadStatus.value = `Download concluído: ${result.size_bytes} bytes`
+    const sizeBytes = (result as Record<string, unknown>).size_bytes as number
+    downloadStatus.value = `Download concluído: ${sizeBytes} bytes`
     downloadProgress.value = 100
-  } catch (error) {
-    downloadStatus.value = `Erro no download: ${error}`
+  } catch (error: any) {
+    downloadStatus.value = `Erro no download: ${error?.message || String(error)}`
     downloadProgress.value = 0
   } finally {
     downloading.value = false
@@ -110,7 +111,7 @@ watch(() => props.modelValue, (val) => {
     <div v-if="localOpen" class="fixed inset-0 z-50 flex items-center justify-center">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="close" />
 
-      <div class="relative w-full max-w-4xl max-h-[90vh] bg-gray-900 rounded-xl border border-gray-700 overflow-hidden flex flex-col">
+      <div class="relative w-full max-w-4xl max-h-[90vh] bg-gray-900 rounded-xl border border-gray-700 overflow-hidden flex flex-col mx-4">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700 flex-shrink-0">
           <h2 class="text-xl font-semibold text-white">Configurações</h2>
@@ -212,7 +213,7 @@ watch(() => props.modelValue, (val) => {
             <!-- Prerequisites -->
             <div class="card mt-4">
               <h4 class="font-medium text-white mb-3">Pré-requisitos do Sistema</h4>
-              <button @click="checkPrerequisites" class="btn btn-primary" :disabled="!vmStore.vmStatus.running">
+              <button @click="checkPrerequisites" class="btn btn-primary">
                 Verificar Pré-requisitos
               </button>
               <div v-if="showingInstructions" class="mt-3 p-3 bg-gray-800 rounded-lg">
@@ -251,6 +252,7 @@ watch(() => props.modelValue, (val) => {
                 <h4 class="font-medium text-white mb-3">Download da Imagem</h4>
                 <p class="text-sm text-gray-400 mb-3">
                   Baixe uma imagem Android x86_64 compatível com KVM para iniciar a VM.
+                  Recomenda-se: https://dl.google.com/android/repository/sys-img/android/x86_64/
                 </p>
                 <button
                   @click="downloadAndroidImage"

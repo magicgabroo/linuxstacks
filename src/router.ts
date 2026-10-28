@@ -11,7 +11,8 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  document.title = `LinuxStacks - ${to.meta.title as string || 'LinuxStacks'}`
+  const title = to.meta.title as string
+  document.title = title ? `LinuxStacks - ${title}` : 'LinuxStacks'
 })
 
 export default router

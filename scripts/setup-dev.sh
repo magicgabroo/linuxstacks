@@ -12,10 +12,11 @@ if ! command -v cargo &> /dev/null; then
     source "$HOME/.cargo/env"
 fi
 
-# Install Node.js/pnpm
-if ! command -v pnpm &> /dev/null; then
-    echo "Installing pnpm..."
-    npm install -g pnpm
+# Install Node.js/npm check
+if ! command -v node &> /dev/null; then
+    echo "[WARN] Node.js not found. Install from https://nodejs.org"
+else
+    echo "[OK] Node.js $(node --version)"
 fi
 
 # Install system dependencies (Ubuntu/Debian)
@@ -32,7 +33,12 @@ fi
 
 # Install project dependencies
 echo "Installing project dependencies..."
-pnpm install
+npm install
 
+echo ""
 echo "Development environment ready!"
-echo "Run 'pnpm tauri dev' to start development server"
+echo ""
+echo "Commands:"
+echo "  npm run tauri:dev     # Start dev server with hot reload"
+echo "  npm run tauri:build   # Build production app"
+echo "  npm run build         # Build frontend only"

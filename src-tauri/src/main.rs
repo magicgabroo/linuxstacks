@@ -1,10 +1,3 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
-mod config;
-mod vm_manager;
-mod installer;
-mod error;
-
 use std::sync::Mutex;
 use tauri::Manager;
 use config::AppConfig;
@@ -138,23 +131,18 @@ async fn stop_vm(
 fn get_vm_status(
     vm_manager: tauri::State<'_, VmManager>,
     running_vms: tauri::State<'_, RunningVms>,
-) -> Result<serde_json::Value, String> {
+) -> serde_json::Value {
     let mut pids = running_vms.lock().unwrap();
     filter_alive_pids(&mut *pids);
 
-    let status = vm_manager.get_vm_status().unwrap_or(vm_manager::VmStatus {
-        running: false,
-        pid: None,
-        memory_mb: 4096,
-        cpu_percent: 0.0,
-    });
+    let status = vm_manager.get_vm_status();
 
-    Ok(serde_json::json!({
+    serde_json::json!({
         "running": !pids.is_empty(),
         "pid": pids.first().copied(),
         "memory_mb": status.memory_mb,
         "cpu_percent": 0.0
-    }))
+    })
 }
 
 #[tauri::command]

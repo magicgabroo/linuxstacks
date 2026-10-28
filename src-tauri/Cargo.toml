@@ -20,10 +20,10 @@ panic = "abort"
 strip = true
 
 [features]
-default = ["shell", "fs", "dialog", "notification", "opener", "process", "os"]
+default = ["custom-protocol"]
 
 [dependencies]
-tauri = { workspace = true, features = ["macros", "shell", "fs", "dialog", "notification", "opener", "process", "os"] }
+tauri = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }
@@ -37,6 +37,5 @@ uuid = { workspace = true }
 toml = { workspace = true }
 regex = { workspace = true }
 chrono = { workspace = true }
-reqwest = { workspace = true, features = ["blocking"] }
+reqwest = { workspace = true, features = ["stream"] }
 sha2 = { workspace = true }
-lazy_static = { workspace = true }

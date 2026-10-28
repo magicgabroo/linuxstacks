@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
 import type { PrerequisiteCheck } from '@/types'
 
 const currentStep = ref(1)
@@ -36,13 +37,19 @@ async function executeStep(step: number) {
     installProgress.value = 20
 
     try {
-      const check = await (window as any).__TAURI__.invoke('check_prerequisites')
-      prereqCheck.value = check as PrerequisiteCheck
+      const check = await invoke<Record<string, unknown>>('check_prerequisites')
+      prereqCheck.value = {
+        kvm: Boolean(check.kvm),
+        qemu: Boolean(check.qemu),
+        libvirt: Boolean(check.libvirt),
+        kvm_modules: Boolean(check.kvm_modules),
+        user_in_kvm_group: Boolean(check.user_in_kvm_group),
+        all_ok: Boolean(check.all_ok),
+      }
       if (!check.all_ok) {
         installStep.value = 'Pré-requisitos faltando - gerando instruções...'
         installProgress.value = 40
-        // Get install instructions (does NOT run sudo)
-        await (window as any).__TAURI__.invoke('install_dependencies')
+        const instructions = await invoke<string>('install_dependencies')
         installStep.value = 'Siga as instruções no painel de configurações'
         installProgress.value = 50
       } else {
@@ -58,10 +65,6 @@ async function executeStep(step: number) {
   }
 
   if (step === 3) {
-    installStep.value = 'Baixando imagem Android...'
-    installProgress.value = 60
-    // Real download will be triggered by user from settings or auto on first start
-    // For now show a message that this step is ready
     installStep.value = 'Imagem Android pronta para download'
     installProgress.value = 70
   }
@@ -70,7 +73,7 @@ async function executeStep(step: number) {
     installStep.value = 'Preparando disco virtual...'
     installProgress.value = 80
     try {
-      await (window as any).__TAURI__.invoke('create_disk_image', { sizeGb: 32 })
+      await invoke('create_disk_image', { sizeGb: 32 })
       installStep.value = 'Disco configurado com sucesso!'
       installProgress.value = 95
     } catch (error) {
@@ -104,7 +107,7 @@ onMounted(() => {
     <div v-if="currentStep > 0" class="fixed inset-0 z-50 flex items-center justify-center">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="skipWizard" />
 
-      <div class="relative w-full max-w-2xl max-h-[90vh] bg-gray-900 rounded-xl border border-gray-700 overflow-hidden">
+      <div class="relative w-full max-w-2xl max-h-[90vh] bg-gray-900 rounded-xl border border-gray-700 overflow-hidden mx-4">
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
           <h2 class="text-xl font-semibold text-white">Assistente LinuxStacks</h2>
@@ -253,7 +256,7 @@ onMounted(() => {
                 @click="nextStep"
                 class="btn btn-primary w-full"
               >
-                {{ prereqCheck?.all_ok ? 'Próximo: Download' : 'Próximo: Download' }}
+                Próximo: Download
               </button>
             </div>
           </div>

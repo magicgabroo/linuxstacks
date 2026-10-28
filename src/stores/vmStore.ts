@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import type { AppConfig, VmStatus, PrerequisiteCheck } from '@/types'
 
 export const useVmStore = defineStore('vm', () => {
@@ -39,20 +41,19 @@ export const useVmStore = defineStore('vm', () => {
 
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const prerequisites = ref<PrerequisiteCheck | null>(null)
 
   // Getters
   const isVmRunning = computed(() => vmStatus.value.running)
   const vmPid = computed(() => vmStatus.value.pid)
+  const hasError = computed(() => error.value !== null)
 
   // Actions
   async function loadConfig() {
     try {
-      const tauri = (window as any).__TAURI__
-      if (tauri) {
-        const savedConfig = await tauri.invoke('get_config')
-        if (savedConfig) {
-          config.value = { ...config.value, ...savedConfig }
-        }
+      const savedConfig = await invoke<AppConfig>('get_config')
+      if (savedConfig) {
+        config.value = { ...config.value, ...savedConfig }
       }
     } catch (err) {
       console.error('Failed to load config:', err)
@@ -61,23 +62,26 @@ export const useVmStore = defineStore('vm', () => {
 
   async function saveConfig() {
     try {
-      const tauri = (window as any).__TAURI__
-      if (tauri) {
-        await tauri.invoke('save_config', { config: config.value })
-      }
-    } catch (err) {
-      console.error('Failed to save config:', err)
+      loading.value = true
+      error.value = null
+      await invoke('save_config', { config: config.value })
+    } catch (err: any) {
+      error.value = err?.message || 'Failed to save config'
       throw err
+    } finally {
+      loading.value = false
     }
   }
 
   async function fetchVmStatus() {
     try {
-      const tauri = (window as any).__TAURI__
-      if (tauri) {
-        const status = await tauri.invoke('get_vm_status')
-        if (status) {
-          vmStatus.value = { ...vmStatus.value, ...status }
+      const status = await invoke<Record<string, unknown>>('get_vm_status')
+      if (status) {
+        vmStatus.value = {
+          running: status.running as boolean,
+          pid: status.pid as number | undefined,
+          memory_mb: (status.memory_mb as number) || vmStatus.value.memory_mb,
+          cpu_percent: (status.cpu_percent as number) || 0,
         }
       }
     } catch (err) {
@@ -89,16 +93,13 @@ export const useVmStore = defineStore('vm', () => {
     loading.value = true
     error.value = null
     try {
-      const tauri = (window as any).__TAURI__
-      if (tauri) {
-        const pid = await tauri.invoke('start_vm', { androidImg: androidImgPath || null })
-        vmStatus.value.running = true
-        vmStatus.value.pid = pid
-        return pid
-      }
+      const pid = await invoke<number>('start_vm', { androidImg: androidImgPath ?? null })
+      vmStatus.value.running = true
+      vmStatus.value.pid = pid
+      return pid
     } catch (err: any) {
       error.value = err?.message || 'Failed to start VM'
-      throw error
+      throw err
     } finally {
       loading.value = false
     }
@@ -108,15 +109,14 @@ export const useVmStore = defineStore('vm', () => {
     loading.value = true
     error.value = null
     try {
-      const tauri = (window as any).__TAURI__
-      if (tauri && vmStatus.value.pid) {
-        await tauri.invoke('stop_vm', { pid: vmStatus.value.pid })
-        vmStatus.value.running = false
-        vmStatus.value.pid = undefined
+      if (vmStatus.value.pid) {
+        await invoke('stop_vm', { pid: vmStatus.value.pid })
       }
+      vmStatus.value.running = false
+      vmStatus.value.pid = undefined
     } catch (err: any) {
       error.value = err?.message || 'Failed to stop VM'
-      throw error
+      throw err
     } finally {
       loading.value = false
     }
@@ -126,13 +126,10 @@ export const useVmStore = defineStore('vm', () => {
     loading.value = true
     error.value = null
     try {
-      const tauri = (window as any).__TAURI__
-      if (tauri) {
-        await tauri.invoke('resize_disk_image', { sizeGb })
-      }
+      await invoke('resize_disk_image', { sizeGb })
     } catch (err: any) {
       error.value = err?.message || 'Failed to resize disk'
-      throw error
+      throw err
     } finally {
       loading.value = false
     }
@@ -140,35 +137,35 @@ export const useVmStore = defineStore('vm', () => {
 
   async function checkPrerequisites(): Promise<PrerequisiteCheck | null> {
     try {
-      const tauri = (window as any).__TAURI__
-      if (tauri) {
-        return await tauri.invoke('check_prerequisites')
+      const check = await invoke<Record<string, unknown>>('check_prerequisites')
+      const result: PrerequisiteCheck = {
+        kvm: Boolean(check.kvm),
+        qemu: Boolean(check.qemu),
+        libvirt: Boolean(check.libvirt),
+        kvm_modules: Boolean(check.kvm_modules),
+        user_in_kvm_group: Boolean(check.user_in_kvm_group),
+        all_ok: Boolean(check.all_ok),
       }
+      prerequisites.value = result
+      return result
     } catch (err) {
       console.error('Failed to check prerequisites:', err)
+      return null
     }
-    return null
   }
 
   async function installDependencies(): Promise<string> {
     try {
-      const tauri = (window as any).__TAURI__
-      if (tauri) {
-        return await tauri.invoke('install_dependencies')
-      }
+      return await invoke<string>('install_dependencies')
     } catch (err) {
       console.error('Failed to get install instructions:', err)
       throw err
     }
-    return ''
   }
 
-  async function downloadAndroidImage(url: string, destination: string): Promise<any> {
+  async function downloadAndroidImage(url: string, destination: string): Promise<Record<string, unknown>> {
     try {
-      const tauri = (window as any).__TAURI__
-      if (tauri) {
-        return await tauri.invoke('download_android_image', { url, destination })
-      }
+      return await invoke<Record<string, unknown>>('download_android_image', { url, destination })
     } catch (err) {
       console.error('Failed to download Android image:', err)
       throw err
@@ -180,8 +177,10 @@ export const useVmStore = defineStore('vm', () => {
     vmStatus,
     loading,
     error,
+    prerequisites,
     isVmRunning,
     vmPid,
+    hasError,
     loadConfig,
     saveConfig,
     fetchVmStatus,

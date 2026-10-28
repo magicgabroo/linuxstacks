@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useVmStore } from '@/stores/vmStore'
 
 interface Props {
   vmRunning: boolean
@@ -17,20 +17,14 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
-
-const starting = ref(false)
-const stopping = ref(false)
+const vmStore = useVmStore()
 
 function handleStartVm() {
-  starting.value = true
   emit('start-vm')
-  setTimeout(() => { starting.value = false }, 2000)
 }
 
 function handleStopVm() {
-  stopping.value = true
   emit('stop-vm')
-  setTimeout(() => { stopping.value = false }, 2000)
 }
 
 function handleRestartVm() {
@@ -74,6 +68,9 @@ function handleRestartVm() {
         <span v-if="props.vmPid" class="text-xs text-gray-500 font-mono">
           (PID: {{ props.vmPid }})
         </span>
+        <span v-if="vmStore.loading" class="text-xs text-yellow-400 animate-pulse">
+          Aguarde...
+        </span>
       </div>
     </div>
 
@@ -81,37 +78,37 @@ function handleRestartVm() {
     <div class="flex items-center gap-2">
       <button
         @click="handleStartVm"
-        :disabled="props.vmRunning || starting"
+        :disabled="props.vmRunning || vmStore.loading"
         class="btn btn-primary flex items-center gap-2 px-4 py-2"
-        :class="{ 'opacity-50 cursor-not-allowed': props.vmRunning || starting }"
+        :class="{ 'opacity-50 cursor-not-allowed': props.vmRunning || vmStore.loading }"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span v-if="starting">Iniciando...</span>
+        <span v-if="vmStore.loading && !props.vmRunning">Iniciando...</span>
         <span v-else>Iniciar VM</span>
       </button>
 
       <button
         @click="handleStopVm"
-        :disabled="!props.vmRunning || stopping"
+        :disabled="!props.vmRunning || vmStore.loading"
         class="btn btn-danger flex items-center gap-2 px-4 py-2"
-        :class="{ 'opacity-50 cursor-not-allowed': !props.vmRunning || stopping }"
+        :class="{ 'opacity-50 cursor-not-allowed': !props.vmRunning || vmStore.loading }"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
         </svg>
-        <span v-if="stopping">Parando...</span>
+        <span v-if="vmStore.loading && props.vmRunning">Parando...</span>
         <span v-else>Parar VM</span>
       </button>
 
       <button
         @click="handleRestartVm"
-        :disabled="!props.vmRunning"
+        :disabled="!props.vmRunning || vmStore.loading"
         class="btn btn-secondary flex items-center gap-2 px-4 py-2"
-        :class="{ 'opacity-50 cursor-not-allowed': !props.vmRunning }"
+        :class="{ 'opacity-50 cursor-not-allowed': !props.vmRunning || vmStore.loading }"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

@@ -1,7 +1,6 @@
 # Dependencies
 node_modules/
 target/
-.pnpm-store/
 
 # Build outputs
 dist/
@@ -44,7 +43,8 @@ linuxstacks.toml
 *.toml.local
 
 # Cache
-.cache/
+.npm/
+.pnpm-store/
 .eslintcache
 *.tsbuildinfo
 
@@ -57,7 +57,7 @@ coverage/
 *.iso
 android-*.img
 
-# Tauri
-**/target/
-**/*.dSYMpackage-lock.json
+# Lockfiles (opcionais)
+package-lock.json
 pnpm-lock.yaml
+yarn.lock

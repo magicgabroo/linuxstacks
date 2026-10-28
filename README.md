@@ -16,29 +16,30 @@
 |---------|--------|
 | 🚀 Android via KVM/QEMU (nativo, rápido) | ✅ |
 | 🎨 UI Tauri + Vue 3 (leve, nativa) | ✅ |
-| 📦 AppImage / Flatpak / Snap | ✅ |
+| 📦 AppImage / .deb | ✅ |
 | 🔒 Zero telemetria, zero anúncios | ✅ |
-| 🛒 F-Droid + Aurora Store integrado | ✅ |
 | 📁 Compartilhamento de arquivos host↔guest | ✅ |
-| 🎮 Mapeamento de teclado/gamepad | ✅ |
-| 📱 ADB integration | ✅ |
-| 🔄 Snapshot/backup de VMs | 🚧 |
+| 🎮 Mapeamento de teclado | ✅ |
+| 📱 ADB integration (porta 5555) | ✅ |
+| 🔄 Assistente de instalação | ✅ |
+| ⚙️ Configuração completa de VM | ✅ |
 
 ---
 
-## 🚀 Instalação Rápida (Linux)
+## 🚀 Instalação Rápida (Ubuntu 26.04)
 
 ```bash
 # Opção 1: Script único (recomendado)
 curl -fsSL https://raw.githubusercontent.com/magicgabroo/linuxstacks/main/scripts/install.sh | bash
 
-# Opção 2: Baixar AppImage
+# Opção 2: Baixar .deb do release
+wget https://github.com/magicgabroo/linuxstacks/releases/latest/download/LinuxStacks_*.deb
+sudo apt install ./LinuxStacks_*.deb
+
+# Opção 3: AppImage
 wget https://github.com/magicgabroo/linuxstacks/releases/latest/download/LinuxStacks-x86_64.AppImage
 chmod +x LinuxStacks-x86_64.AppImage
 ./LinuxStacks-x86_64.AppImage
-
-# Opção 3: Flatpak
-flatpak install flathub org.linuxstacks.LinuxStacks
 ```
 
 ---
@@ -55,7 +56,7 @@ sudo apt update && sudo apt install -y \
     libssl-dev libgtk-3-dev libayatana-appindicator3-dev \
     librsvg2-dev patchelf \
     qemu-system-x86 qemu-kvm libvirt-daemon-system \
-    python3-pip nodejs npm
+    nodejs npm
 
 # Arch/Manjaro
 sudo pacman -S --needed base-devel git curl wget \
@@ -82,17 +83,14 @@ cd linuxstacks
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
 
-# Install pnpm
-npm install -g pnpm
-
 # Install dependencies
-pnpm install
+npm install
 
 # Dev mode (hot reload)
-pnpm tauri dev
+npm run tauri:dev
 
 # Build production
-pnpm tauri build
+npm run tauri:build
 ```
 
 ---
@@ -101,14 +99,13 @@ pnpm tauri build
 
 ```
 linuxstacks/
-├── .github/workflows/       # CI/CD (AppImage, Flatpak, Snap)
+├── .github/workflows/       # CI/CD (AppImage, .deb)
 ├── src-tauri/               # Backend Rust
 │   ├── src/
 │   │   ├── main.rs          # Entry point
 │   │   ├── vm_manager.rs    # QEMU/KVM control
 │   │   ├── config.rs        # Config TOML
 │   │   ├── installer.rs     # Instalação automatizada
-│   │   ├── ipc.rs           # Comunicação frontend↔backend
 │   │   └── error.rs         # Error handling
 │   ├── Cargo.toml
 │   ├── tauri.conf.json
@@ -117,9 +114,10 @@ linuxstacks/
 │   ├── components/          # VmWindow, Sidebar, Toolbar, Settings
 │   ├── stores/              # Pinia state management
 │   ├── styles/              # CSS/Tailwind
-│   └── utils/
+│   └── types/
 ├── scripts/
 │   ├── install.sh           # Instalação one-liner
+│   ├── uninstall.sh         # Desinstalação
 │   ├── build-appimage.sh
 │   └── download-android.sh
 ├── linuxstacks.toml.example # Config exemplo
@@ -141,7 +139,7 @@ network = "user-mode"
 disk_path = "~/LinuxStacks/android.qcow2"
 
 [android]
-image_url = "https://dl.google.com/android/repository/android-x86_64.img"
+image_url = ""  # URL da imagem Android x86_64
 shared_folder = "~/LinuxStacks/shared"
 
 [ui]
@@ -159,23 +157,37 @@ file_share = true
 
 ---
 
+## 📦 Imagem Android
+
+Para usar o LinuxStacks, você precisa de uma imagem Android x86_64:
+
+```bash
+# Opção 1: Usar o script de download
+./scripts/download-android.sh
+
+# Opção 2: Baixar manualmente
+# https://developer.android.com/tools/releases/images
+# Ou usar o Android SDK:
+# sdkmanager "system-images;android-34;google_apis;x86_64"
+```
+
+Extraia e configure a URL no menu Configurações > Android.
+
+---
+
 ## 📦 Distribuição
+
+### .deb (Ubuntu/Debian)
+```bash
+# O build do GitHub gera automaticamente
+sudo apt install ./LinuxStacks_*.deb
+```
 
 ### AppImage (Universal)
 ```bash
-# Build
+# Build local
 ./scripts/build-appimage.sh
-
-# Output: LinuxStacks-x86_64.AppImage
-```
-
-### Flatpak
-```bash
-# Build
-flatpak-builder build-dir org.linuxstacks.LinuxStacks.yml --force-clean
-
-# Install
-flatpak install --user build-dir
+# Output: src-tauri/target/release/bundle/appimage/LinuxStacks*.AppImage
 ```
 
 ---
@@ -185,6 +197,7 @@ flatpak install --user build-dir
 - [x] Core: KVM/QEMU + Tauri backend
 - [x] UI: Vue 3 + Tauri frontend
 - [x] Installer: Script universal
+- [x] Assistente de instalação
 - [ ] F-Droid / Aurora Store UI
 - [ ] ADB device manager
 - [ ] Snapshot/clone VMs
@@ -216,7 +229,6 @@ MIT License - veja [LICENSE](LICENSE)
 
 - [Tauri](https://tauri.app/) - Framework desktop
 - [QEMU/KVM](https://www.qemu.org/) - Virtualização
-- [android-x86](https://www.android-x86.org/) - Android x86
 - [Vue.js](https://vuejs.org/) - Frontend
 - [Rust](https://www.rust-lang.org/) - Backend
 

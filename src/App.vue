@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useVmStore } from '@/stores/vmStore'
-import Sidebar from '@/components/Sidebar.vue'
-import Toolbar from '@/components/Toolbar.vue'
-import SettingsPanel from '@/components/SettingsPanel.vue'
+import { listen } from '@tauri-apps/api/event'
+import InstallWizard from './InstallWizard.vue'
 
 const vmStore = useVmStore()
 const showSettings = ref(false)
 const showSidebar = ref(true)
+const showWizard = ref(false)
 
 async function startVm() {
   try {
@@ -31,42 +31,55 @@ async function restartVm() {
   await startVm()
 }
 
-onMounted(async () => {
-  vmStore.fetchVmStatus()
-  vmStore.loadConfig()
-
-  const tauri = (window as any).__TAURI__
-  if (tauri) {
-    const { listen } = await import('@tauri-apps/api/event')
-
-    const unlistenStarted = await listen('vm-started', (event: any) => {
-      vmStore.vmStatus.running = true
-      vmStore.vmStatus.pid = event?.payload?.pid
-    })
-    const unlistenStopped = await listen('vm-stopped', () => {
-      vmStore.vmStatus.running = false
-      vmStore.vmStatus.pid = undefined
-    })
-    const unlistenError = await listen('vm-error', (event: any) => {
-      vmStore.vmStatus.running = false
-      console.error('VM Error:', event?.payload)
-    })
-    const unlistenPrereq = await listen('prerequisites-missing', () => {
-      showSettings.value = true
-    })
-
-    onUnmounted(() => {
-      unlistenStarted()
-      unlistenStopped()
-      unlistenError()
-      unlistenPrereq()
-    })
+async function checkAndShowWizard() {
+  const check = await vmStore.checkPrerequisites()
+  if (check && !check.all_ok) {
+    showWizard.value = true
   }
+}
+
+onMounted(async () => {
+  await vmStore.fetchVmStatus()
+  await vmStore.loadConfig()
+
+  // Listen for VM events
+  const unlistenStarted = await listen('vm-started', (event: any) => {
+    vmStore.vmStatus.running = true
+    vmStore.vmStatus.pid = event?.payload?.pid
+  })
+  const unlistenStopped = await listen('vm-stopped', () => {
+    vmStore.vmStatus.running = false
+    vmStore.vmStatus.pid = undefined
+  })
+  const unlistenError = await listen('vm-error', (event: any) => {
+    vmStore.vmStatus.running = false
+    console.error('VM Error:', event?.payload)
+  })
+  const unlistenPrereq = await listen('prerequisites-missing', () => {
+    showSettings.value = true
+  })
+
+  onUnmounted(() => {
+    unlistenStarted()
+    unlistenStopped()
+    unlistenError()
+    unlistenPrereq()
+  })
+
+  // Check prerequisites after load
+  await checkAndShowWizard()
 })
+
+function closeSettings() {
+  showSettings.value = false
+}
 </script>
 
 <template>
   <div class="flex h-screen w-screen bg-gray-950 overflow-hidden">
+    <!-- Install Wizard -->
+    <InstallWizard v-if="showWizard" @complete="showWizard = false" />
+
     <!-- Sidebar -->
     <Sidebar
       v-model="showSidebar"
@@ -82,7 +95,7 @@ onMounted(async () => {
         :vm-pid="vmStore.vmStatus.pid"
         :show-sidebar="showSidebar"
         @toggle-sidebar="showSidebar = !showSidebar"
-        @toggle-settings="showSettings = !showSettings"
+        @toggle-settings="showSettings = true"
         @start-vm="startVm"
         @stop-vm="stopVm"
         @restart-vm="restartVm"
@@ -90,18 +103,38 @@ onMounted(async () => {
 
       <!-- VM Window Area -->
       <div class="flex-1 relative overflow-hidden bg-gray-950">
-        <!-- VM Iframe/View -->
         <div class="absolute inset-0">
-          <iframe
+          <!-- VM Display Placeholder -->
+          <div
             v-if="vmStore.vmStatus.running"
-            class="w-full h-full border-0"
-            src="http://localhost:5555"
-            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          />
+            class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900"
+          >
+            <div class="text-center max-w-md px-6">
+              <div class="w-20 h-20 mx-auto mb-6">
+                <svg class="w-full h-full text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-white mb-2">VM em execução</h3>
+              <p class="text-gray-400 text-sm mb-4">
+                A máquina virtual Android está rodando. A janela do QEMU aparecerá separadamente no sistema.
+              </p>
+              <div class="flex items-center justify-center gap-4 text-sm text-gray-500">
+                <span class="flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  Rodando (PID: {{ vmStore.vmStatus.pid }})
+                </span>
+              </div>
+              <p class="text-xs text-gray-600 mt-4">
+                Dica: Use ADB para conectar: <code class="text-green-400">adb connect localhost:5555</code>
+              </p>
+            </div>
+          </div>
 
           <!-- Placeholder when VM not running -->
           <div
-            v-if="!vmStore.vmStatus.running"
+            v-else
             class="absolute inset-0 flex flex-col items-center justify-center bg-gray-950 p-8"
           >
             <div class="text-center max-w-md">
@@ -116,12 +149,17 @@ onMounted(async () => {
                 Emulador Android nativo para Linux usando KVM/QEMU.
                 Configure a imagem Android e clique em "Iniciar VM" para começar.
               </p>
-              <div class="flex justify-center gap-4">
+              <div v-if="vmStore.error" class="mb-4 p-3 bg-red-900/30 border border-red-700 rounded-lg text-red-400 text-sm">
+                {{ vmStore.error }}
+              </div>
+              <div class="flex flex-col sm:flex-row justify-center gap-4">
                 <button
                   @click="startVm"
-                  class="btn btn-primary px-8 py-3 text-lg"
+                  :disabled="vmStore.loading"
+                  class="btn btn-primary px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Iniciar VM
+                  <span v-if="vmStore.loading">Carregando...</span>
+                  <span v-else>Iniciar VM</span>
                 </button>
                 <button
                   @click="showSettings = true"
@@ -130,6 +168,9 @@ onMounted(async () => {
                   Configurações
                 </button>
               </div>
+              <p class="text-xs text-gray-600 mt-6">
+                A VM será iniciada com Janelas GTK nativas. Requer KVM habilitado na BIOS.
+              </p>
             </div>
           </div>
         </div>
@@ -138,7 +179,7 @@ onMounted(async () => {
       <!-- Settings Panel -->
       <SettingsPanel
         v-model="showSettings"
-        @close="showSettings = false"
+        @close="closeSettings"
       />
     </div>
   </div>

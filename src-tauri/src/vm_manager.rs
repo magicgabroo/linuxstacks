@@ -80,7 +80,7 @@ impl VmManager {
         }
 
         if let Some(parent) = PathBuf::from(disk_path).parent() {
-            std::fs::create_dir_all(parent)?;
+            std::fs::create_dir_all(parent).map_err(|e| LinuxStacksError::Vm(format!("Cannot create parent dir: {}", e)))?;
         }
 
         let output = TokioCommand::new("qemu-img")
@@ -208,13 +208,13 @@ impl VmManager {
         Ok(())
     }
 
-    pub fn get_vm_status(&self) -> Result<VmStatus> {
-        Ok(VmStatus {
+    pub fn get_vm_status(&self) -> VmStatus {
+        VmStatus {
             running: false,
             pid: None,
             memory_mb: self.config.memory_mb,
             cpu_percent: 0.0,
-        })
+        }
     }
 
     pub fn is_process_running(pid: u32) -> bool {

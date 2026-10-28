@@ -203,7 +203,7 @@ main() {
         print_step "Para build local:"
         echo "  git clone https://github.com/$REPO.git"
         echo "  cd linuxstacks"
-        echo "  pnpm install && pnpm tauri build"
+        echo "  npm install && npm run tauri:build"
     fi
     
     echo -e "\n${GREEN}═══════════════════════════════════════${NC}"
