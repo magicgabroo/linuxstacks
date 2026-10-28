@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+target/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+*.AppImage
+*.flatpak
+*.snap
+*.deb
+*.rpm
+
+# Tauri
+src-tauri/target/
+**/*.dSYM
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Config local (não commitar)
+linuxstacks.toml
+*.toml.local
+
+# Cache
+.cache/
+.eslintcache
+*.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Android images (grandes)
+*.img
+*.qcow2
+*.iso
+android-*.img
+
+# Tauri
+**/target/
+**/*.dSYM

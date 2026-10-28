@@ -1,0 +1,35 @@
+[package]
+name = "linuxstacks"
+version = "1.0.0"
+edition = "2021"
+description = "LinuxStacks - Native Android emulator for Linux using KVM/QEMU"
+authors = ["LinuxStacks Contributors"]
+license = "MIT"
+repository = "https://github.com/magicgabroo/linuxstacks"
+keywords = ["android", "emulator", "kvm", "qemu", "linux", "tauri"]
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[features]
+default = ["shell", "fs", "dialog", "notification", "opener", "process", "os"]
+
+[dependencies]
+tauri = { workspace = true, features = ["macros", "shell", "fs", "dialog", "notification", "opener", "process", "os"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+config = { workspace = true }
+dirs = { workspace = true }

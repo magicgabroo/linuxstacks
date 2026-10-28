@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=LinuxStacks
+Comment=Android emulator for Linux
+Exec=linuxstacks
+Icon=linuxstacks
+Terminal=false
+Type=Application
+Categories=Development;Emulator;
+StartupNotify=true
+Keywords=android;emulator;kvm;qemu;
+StartupWMClass=LinuxStacks

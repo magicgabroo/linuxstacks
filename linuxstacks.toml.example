@@ -1,0 +1,25 @@
+# LinuxStacks Configuration Example
+# Copy to ~/.config/linuxstacks/linuxstacks.toml and customize
+
+[vm]
+memory_mb = 4096
+cpus = 4
+gpu = "virtio-gpu"
+network = "user-mode"
+disk_path = "~/LinuxStacks/android.qcow2"
+
+[android]
+image_url = "https://dl.google.com/android/repository/android-x86_64.img"
+shared_folder = "~/LinuxStacks/shared"
+
+[ui]
+theme = "auto"
+language = "pt-BR"
+show_toolbar = true
+
+[features]
+f_droid = true
+aurora_store = true
+adb_integration = true
+clipboard_sync = true
+file_share = true
