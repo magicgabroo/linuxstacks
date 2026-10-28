@@ -1,12 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import VmWindow from '@/components/VmWindow.vue'
-import Settings from '@/components/SettingsPanel.vue'
-import InstallWizard from '@/components/InstallWizard.vue'
+import App from './App.vue'
 
 const routes = [
-  { path: '/', component: VmWindow, meta: { title: 'VM' } },
-  { path: '/settings', component: Settings, meta: { title: 'Configurações' } },
-  { path: '/wizard', component: InstallWizard, meta: { title: 'Assistente de Instalação' } },
+  { path: '/', component: App, meta: { title: 'LinuxStacks' } },
 ]
 
 const router = createRouter({
@@ -14,9 +10,8 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   document.title = `LinuxStacks - ${to.meta.title as string || 'LinuxStacks'}`
-  next()
 })
 
 export default router

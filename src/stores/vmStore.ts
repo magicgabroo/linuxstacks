@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AppConfig, VmConfig, VmStatus, PrerequisiteCheck } from '@/types'
+import type { AppConfig, VmStatus, PrerequisiteCheck } from '@/types'
 
 export const useVmStore = defineStore('vm', () => {
   // State

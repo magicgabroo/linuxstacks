@@ -11,61 +11,75 @@ permissions:
 
 env:
   CARGO_TERM_COLOR: always
+  NODE_VERSION: '20'
+  PNPM_VERSION: '9'
 
 jobs:
   build:
-    name: Build ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build Linux (${{ matrix.target }})
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact_name: LinuxStacks-x86_64.AppImage
-            upload_name: LinuxStacks-x86_64.AppImage
-
+          - target: x86_64-unknown-linux-gnu
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Rust
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          target: ${{ matrix.target }}
+          targets: ${{ matrix.target }}
+          components: rustfmt
 
-      - name: Cache cargo
+      - name: Cache cargo registry
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-registry-
+
+      - name: Cache cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-index-
+
+      - name: Cache tauri build
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/target
+          key: ${{ runner.os }}-tauri-target-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-tauri-target-
 
       - name: Install system dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt update
           sudo apt install -y \
             libwebkit2gtk-4.1-dev \
-            libssl-dev libgtk-3-dev libayatana-appindicator3-dev \
-            librsvg2-dev patchelf \
-            qemu-system-x86 qemu-kvm libvirt-daemon-system
+            libssl-dev \
+            libgtk-3-dev \
+            librsvg2-dev \
+            patchelf \
+            libayatana-appindicator3-dev \
+            qemu-system-x86 \
+            qemu-kvm \
+            libvirt-daemon-system \
+            libayatana-indicator3-dev
 
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install pnpm
-        run: npm install -g pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Build frontend
-        run: pnpm build
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -74,29 +88,35 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "LinuxStacks ${{ github.ref_name }}"
-          releaseBody: "LinuxStacks ${{ github.ref_name }} - Android emulator for Linux"
-          draft: false
+          releaseBody: |
+            LinuxStacks ${{ github.ref_name }}
+            Android emulator for Linux using KVM/QEMU.
+
+            **Installation on Ubuntu 26.04:**
+            ```bash
+            sudo apt install ./LinuxStacks_*.deb
+            ```
+
+            **Runtime dependencies (if not already installed):**
+            ```bash
+            sudo apt install qemu-system-x86 qemu-kvm libwebkit2gtk-4.1-0 libgtk-3-0 librsvg2-2 patchelf
+            sudo usermod -aG kvm $USER
+            sudo usermod -aG libvirt $USER
+            ```
+          releaseDraft: false
           prerelease: false
-          args: --target ${{ matrix.target }}
+          publish: true
 
-  release:
-    name: Create Release
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Create checksums
-        run: |
-          cd artifacts
-          sha256sum * > SHA256SUMS.txt
-          cat SHA256SUMS.txt
-
-      - name: Upload checksums
+      - name: Upload deb artifact
         uses: actions/upload-artifact@v4
         with:
-          name: checksums
-          path: artifacts/SHA256SUMS.txt
+          name: deb-packages
+          path: src-tauri/target/release/bundle/deb/
+          retention-days: 30
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: appimage-package
+          path: src-tauri/target/release/bundle/appimage/
+          retention-days: 30

@@ -25,7 +25,8 @@ const resizing = ref(false)
 const downloadProgress = ref(0)
 const downloading = ref(false)
 const downloadStatus = ref('')
-const installInstructions = ref('')const showingInstructions = ref(false)
+const installInstructions = ref('')
+const showingInstructions = ref(false)
 
 const config = computed(() => vmStore.config)
 

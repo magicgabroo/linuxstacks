@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useVmStore } from '@/stores/vmStore'
 import Sidebar from '@/components/Sidebar.vue'
 import Toolbar from '@/components/Toolbar.vue'
@@ -8,18 +8,6 @@ import SettingsPanel from '@/components/SettingsPanel.vue'
 const vmStore = useVmStore()
 const showSettings = ref(false)
 const showSidebar = ref(true)
-
-const vmStatusClass = computed(() => {
-  if (vmStore.vmStatus.running) return 'text-green-500'
-  if (vmStore.vmStatus.pid) return 'text-yellow-500'
-  return 'text-gray-500'
-})
-
-const vmStatusText = computed(() => {
-  if (vmStore.vmStatus.running) return 'Executando'
-  if (vmStore.vmStatus.pid) return 'Parando...'
-  return 'Parado'
-})
 
 async function startVm() {
   try {
@@ -81,7 +69,7 @@ onMounted(async () => {
   <div class="flex h-screen w-screen bg-gray-950 overflow-hidden">
     <!-- Sidebar -->
     <Sidebar
-      v-model:open="showSidebar"
+      v-model="showSidebar"
       @open-settings="showSettings = true"
       class="transition-transform duration-300 ease-in-out z-20"
     />
@@ -149,13 +137,9 @@ onMounted(async () => {
 
       <!-- Settings Panel -->
       <SettingsPanel
-        v-model:open="showSettings"
+        v-model="showSettings"
         @close="showSettings = false"
       />
     </div>
   </div>
 </template>
-
-<style scoped>
-/* VM Window styles handled by Tailwind */
-</style>

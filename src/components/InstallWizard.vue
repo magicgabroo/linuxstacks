@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useVmStore } from '@/stores/vmStore'
 import type { PrerequisiteCheck } from '@/types'
 
-const vmStore = useVmStore()
 const currentStep = ref(1)
 const totalSteps = 5
 const installing = ref(false)
@@ -38,13 +36,13 @@ async function executeStep(step: number) {
     installProgress.value = 20
 
     try {
-      const check = await window.__TAURI__.invoke('check_prerequisites')
+      const check = await (window as any).__TAURI__.invoke('check_prerequisites')
       prereqCheck.value = check as PrerequisiteCheck
       if (!check.all_ok) {
         installStep.value = 'Pré-requisitos faltando - gerando instruções...'
         installProgress.value = 40
         // Get install instructions (does NOT run sudo)
-        await window.__TAURI__.invoke('install_dependencies')
+        await (window as any).__TAURI__.invoke('install_dependencies')
         installStep.value = 'Siga as instruções no painel de configurações'
         installProgress.value = 50
       } else {
@@ -72,7 +70,7 @@ async function executeStep(step: number) {
     installStep.value = 'Preparando disco virtual...'
     installProgress.value = 80
     try {
-      await window.__TAURI__.invoke('create_disk_image', { sizeGb: 32 })
+      await (window as any).__TAURI__.invoke('create_disk_image', { sizeGb: 32 })
       installStep.value = 'Disco configurado com sucesso!'
       installProgress.value = 95
     } catch (error) {
