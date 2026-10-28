@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { AppConfig, VmConfig, VmStatus } from '@/types'
+import type { AppConfig, VmConfig, VmStatus, PrerequisiteCheck } from '@/types'
 
 export const useVmStore = defineStore('vm', () => {
   // State
@@ -13,7 +13,7 @@ export const useVmStore = defineStore('vm', () => {
       disk_path: '~/LinuxStacks/android.qcow2',
     },
     android: {
-      image_url: 'https://dl.google.com/android/repository/android-x86_64.img',
+      image_url: '',
       shared_folder: '~/LinuxStacks/shared',
     },
     ui: {
@@ -29,130 +29,152 @@ export const useVmStore = defineStore('vm', () => {
       file_share: true,
     },
   })
-  
+
   const vmStatus = ref<VmStatus>({
     running: false,
     pid: undefined,
     memory_mb: 4096,
     cpu_percent: 0,
   })
-  
+
   const loading = ref(false)
   const error = ref<string | null>(null)
-  
+
   // Getters
   const isVmRunning = computed(() => vmStatus.value.running)
-  const vmPid = computed(() => vmStore.value.vmStatus.pid)
-  
+  const vmPid = computed(() => vmStatus.value.pid)
+
   // Actions
   async function loadConfig() {
     try {
-      if (window.__TAURI__) {
-        const savedConfig = await window.__TAURI__.invoke('get_config')
+      const tauri = (window as any).__TAURI__
+      if (tauri) {
+        const savedConfig = await tauri.invoke('get_config')
         if (savedConfig) {
-          config.value = savedConfig
+          config.value = { ...config.value, ...savedConfig }
         }
       }
-    } catch (error) {
-      console.error('Failed to load config:', error)
+    } catch (err) {
+      console.error('Failed to load config:', err)
     }
   }
-  
+
   async function saveConfig() {
     try {
-      if (window.__TAURI__) {
-        await window.__TAURI__.invoke('save_config', { config: config.value })
+      const tauri = (window as any).__TAURI__
+      if (tauri) {
+        await tauri.invoke('save_config', { config: config.value })
       }
-    } catch (error) {
-      console.error('Failed to save config:', error)
-      throw error
+    } catch (err) {
+      console.error('Failed to save config:', err)
+      throw err
     }
   }
-  
+
   async function fetchVmStatus() {
     try {
-      if (window.__TAURI__) {
-        const status = await window.__TAURI__.invoke('get_vm_status')
+      const tauri = (window as any).__TAURI__
+      if (tauri) {
+        const status = await tauri.invoke('get_vm_status')
         if (status) {
-          vmStatus.value = status
+          vmStatus.value = { ...vmStatus.value, ...status }
         }
       }
-    } catch (error) {
-      console.error('Failed to fetch VM status:', error)
+    } catch (err) {
+      console.error('Failed to fetch VM status:', err)
     }
   }
-  
-  async function startVm() {
+
+  async function startVm(androidImgPath?: string) {
     loading.value = true
     error.value = null
     try {
-      if (window.__TAURI__) {
-        const pid = await window.__TAURI__.invoke('start_vm')
+      const tauri = (window as any).__TAURI__
+      if (tauri) {
+        const pid = await tauri.invoke('start_vm', { androidImg: androidImgPath || null })
         vmStatus.value.running = true
         vmStatus.value.pid = pid
+        return pid
       }
     } catch (err: any) {
-      error.value = err.message || 'Failed to start VM'
+      error.value = err?.message || 'Failed to start VM'
       throw error
     } finally {
       loading.value = false
     }
   }
-  
+
   async function stopVm() {
     loading.value = true
     error.value = null
     try {
-      if (window.__TAURI__ && vmStatus.value.pid) {
-        await window.__TAURI__.invoke('stop_vm', { pid: vmStatus.value.pid })
+      const tauri = (window as any).__TAURI__
+      if (tauri && vmStatus.value.pid) {
+        await tauri.invoke('stop_vm', { pid: vmStatus.value.pid })
         vmStatus.value.running = false
         vmStatus.value.pid = undefined
       }
     } catch (err: any) {
-      error.value = err.message || 'Failed to stop VM'
+      error.value = err?.message || 'Failed to stop VM'
       throw error
     } finally {
       loading.value = false
     }
   }
-  
+
   async function resizeDisk(sizeGb: number) {
     loading.value = true
     error.value = null
     try {
-      if (window.__TAURI__) {
-        await window.__TAURI__.invoke('create_disk_image', { sizeGb })
+      const tauri = (window as any).__TAURI__
+      if (tauri) {
+        await tauri.invoke('resize_disk_image', { sizeGb })
       }
     } catch (err: any) {
-      error.value = err.message || 'Failed to resize disk'
+      error.value = err?.message || 'Failed to resize disk'
       throw error
     } finally {
       loading.value = false
     }
   }
-  
-  async function checkPrerequisites() {
+
+  async function checkPrerequisites(): Promise<PrerequisiteCheck | null> {
     try {
-      if (window.__TAURI__) {
-        return await window.__TAURI__.invoke('check_prerequisites')
+      const tauri = (window as any).__TAURI__
+      if (tauri) {
+        return await tauri.invoke('check_prerequisites')
       }
-    } catch (error) {
-      console.error('Failed to check prerequisites:', error)
-      throw error
+    } catch (err) {
+      console.error('Failed to check prerequisites:', err)
+    }
+    return null
+  }
+
+  async function installDependencies(): Promise<string> {
+    try {
+      const tauri = (window as any).__TAURI__
+      if (tauri) {
+        return await tauri.invoke('install_dependencies')
+      }
+    } catch (err) {
+      console.error('Failed to get install instructions:', err)
+      throw err
+    }
+    return ''
+  }
+
+  async function downloadAndroidImage(url: string, destination: string): Promise<any> {
+    try {
+      const tauri = (window as any).__TAURI__
+      if (tauri) {
+        return await tauri.invoke('download_android_image', { url, destination })
+      }
+    } catch (err) {
+      console.error('Failed to download Android image:', err)
+      throw err
     }
   }
-  
-  async function installDependencies() {
-    try {
-      if (window.__TAURI__) {
-        await window.__TAURI__.invoke('install_dependencies')
-      }
-    } catch (error) {
-      console.error('Failed to install dependencies:', error)
-      throw error
-    }
-  }
-  
+
   return {
     config,
     vmStatus,
@@ -168,5 +190,6 @@ export const useVmStore = defineStore('vm', () => {
     resizeDisk,
     checkPrerequisites,
     installDependencies,
+    downloadAndroidImage,
   }
 })

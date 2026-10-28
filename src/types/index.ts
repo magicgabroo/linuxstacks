@@ -50,13 +50,8 @@ export interface PrerequisiteCheck {
   all_ok: boolean
 }
 
-export interface IpcMessage {
-  type: string
-  payload: any
-}
-
-export interface InstallProgress {
-  step: string
-  progress: number
-  message: string
+export interface DownloadResult {
+  path: string
+  size_bytes: number
+  success: boolean
 }

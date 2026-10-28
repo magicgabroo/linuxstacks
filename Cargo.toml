@@ -16,3 +16,10 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 config = { version = "0.13", features = ["toml"] }
 dirs = "5.0"
+uuid = { version = "1.8", features = ["v4"] }
+toml = "0.8"
+regex = "1.10"
+chrono = { version = "0.4", features = ["serde"] }
+reqwest = { version = "0.12", features = ["stream"] }
+sha2 = "0.10"
+lazy_static = "1.4"

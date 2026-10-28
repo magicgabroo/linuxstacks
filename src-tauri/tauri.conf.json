@@ -1,5 +1,4 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
   "productName": "LinuxStacks",
   "version": "1.0.0",
   "identifier": "org.linuxstacks.LinuxStacks",
@@ -23,12 +22,11 @@
         "decorations": true,
         "transparent": false,
         "visible": true,
-        "hiddenTitle": false,
-        "theme": "default"
+        "hiddenTitle": false
       }
     ],
     "security": {
-      "csp": "default-src 'self' data: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: wss:;"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: wss:;"
     }
   },
   "bundle": {
@@ -38,98 +36,40 @@
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/256x256.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
+      "icons/512x512.png"
     ],
     "resources": [],
     "externalBin": [],
     "copyright": "© 2024 LinuxStacks Contributors",
     "category": "DeveloperTool",
-    "shortDescription": "Android emulator for Linux",
-    "longDescription": "LinuxStacks - Native Android emulator for Linux using KVM/QEMU",
+    "shortDescription": "Android emulator for Linux using KVM/QEMU",
+    "longDescription": "LinuxStacks is a native Android emulator for Linux, built with Tauri, Rust, and Vue 3. Zero telemetry, zero ads.",
     "deb": {
       "depends": [
         "qemu-system-x86",
         "qemu-kvm",
-        "libvirt-daemon-system",
-        "virt-manager",
         "libwebkit2gtk-4.1-0",
         "libgtk-3-0",
-        "libayatana-appindicator3-1",
-        "librsvg2-2"
+        "librsvg2-2",
+        "patchelf"
       ],
       "section": "utils",
-      "priority": "optional"
+      "priority": "optional",
+      "licenseFile": "../LICENSE"
     },
     "rpm": {
       "depends": [
         "qemu-system-x86",
         "qemu-kvm",
-        "libvirt-daemon",
-        "virt-manager",
         "webkit2gtk4.1",
         "gtk3",
-        "libayatana-appindicator-gtk3",
-        "librsvg2"
+        "librsvg2",
+        "patchelf"
       ],
       "license": "MIT"
     },
     "appimage": {
       "bundleMediaFramework": false
-    },
-    "flatpak": {
-      "finishArgs": [
-        "--device=kvm",
-        "--device=dri",
-        "--filesystem=home",
-        "--filesystem=xdg-run/virt-manager:ro",
-        "--talk-name=org.libvirt",
-        "--talk-name=org.freedesktop.Notifications",
-        "--share=network",
-        "--share=ipc",
-        "--socket=pulseaudio",
-        "--socket=wayland",
-        "--socket=x11"
-      ],
-      "modules": [
-        {
-          "name": "linuxstacks",
-          "buildsystem": "simple",
-          "buildCommands": [
-            "install -Dm755 linuxstacks /app/bin/linuxstacks",
-            "install -Dm644 linuxstacks.desktop /app/share/applications/linuxstacks.desktop",
-            "install -Dm644 icons/256x256.png /app/share/icons/hicolor/256x256/apps/linuxstacks.png"
-          ],
-          "sources": [
-            { "type": "file", "path": "linuxstacks" },
-            { "type": "file", "path": "linuxstacks.desktop" },
-            { "type": "file", "path": "icons/256x256.png" }
-          ]
-        }
-      ]
-    }
-  },
-  "plugins": {
-    "fs": {
-      "scope": {
-        "allowedPaths": [
-          "$HOME/LinuxStacks/*",
-          "$HOME/.config/linuxstacks/*",
-          "/tmp/linuxstacks-*"
-        ]
-      }
-    },
-    "shell": {
-      "scope": {
-        "allowedPaths": [
-          "qemu-system-x86_64",
-          "qemu-img",
-          "virsh",
-          "virt-manager",
-          "adb",
-          "fastboot"
-        ]
-      }
     }
   }
 }

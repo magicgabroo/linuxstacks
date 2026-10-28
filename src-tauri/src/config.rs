@@ -90,8 +90,8 @@ impl AppConfig {
     
     pub fn save(&self) -> Result<(), crate::error::LinuxStacksError> {
         let config_path = Self::config_path()?;
-        let toml = toml::to_string_pretty(self)?;
-        std::fs::write(&config_path, toml)?;
+        let toml_str = toml::to_string_pretty(self)?;
+        std::fs::write(&config_path, toml_str)?;
         Ok(())
     }
     
